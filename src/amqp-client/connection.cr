@@ -65,7 +65,7 @@ class AMQP::Client
                 LOG.error(exception: ex) { "Uncaught exception in on_close block" }
               end
             else
-              LOG.info { "Connection closed by server: #{f.reply_text} (code #{f.reply_code})" }
+              LOG.error { "Connection closed by server: #{f.reply_text} (code #{f.reply_code})" }
             end
             write Frame::Connection::CloseOk.new
             @closing_frame = f
@@ -74,14 +74,14 @@ class AMQP::Client
             begin
               @reply_frames.send f
             rescue ::Channel::ClosedError
-              Log.debug { "CloseOk ignored by user" }
+              LOG.debug { "CloseOk ignored by user" }
             end
             return
           when Frame::Connection::Blocked
-            LOG.info { "Blocked by server, reason: #{f.reason}" }
+            LOG.warn { "Blocked by server, reason: #{f.reason}" }
             @write_lock.lock
           when Frame::Connection::Unblocked
-            LOG.info { "Unblocked by server" }
+            LOG.warn { "Unblocked by server" }
             @write_lock.unlock
           when Frame::Heartbeat
             write f
@@ -153,7 +153,7 @@ class AMQP::Client
       end
       LOG.debug { "Server didn't confirm close" }
     rescue ex : IO::Error
-      LOG.info { "Socket already closed, can't send close frame" }
+      LOG.warn { "Socket already closed, can't send close frame" }
     ensure
       @closed = true
       @reply_frames.close
